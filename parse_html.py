@@ -1,6 +1,7 @@
 from pathlib import Path
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
+from datetime import datetime
 
 source_dir = "publications"
 
@@ -8,7 +9,12 @@ class Article:
     def __init__(self ,path: str):
         self.path = path
         self.soup = self._get_soup()
-        self.article_text_block = self._get_article()
+        self.header = self.soup.article.header
+        self.date = datetime.strftime(datetime.strptime(self.header.date.text.strip(), "%d.%m.%Y"), "%Y-%m-%d")
+        self.author = self.header.find("div", class_="article-item-credits_author divider").a.text.strip()
+        self.title = self.header.h1.text
+        self.description = self.title
+        self.article_text_block = self._get_article_text_block()
 
     def _get_soup(self):
         with open(self.path, "r") as file:
@@ -20,7 +26,7 @@ class Article:
         item_list = self.article.find_all(True, recursive=False)
         return item_list
 
-    def _get_article(self):
+    def _get_article_text_block(self):
         return self.soup.article.find("div", class_="article-item-text")
 
     def convert_to_md(self):
@@ -38,7 +44,9 @@ def main() -> None:
     path = publ_list[0]
     art = Article(path)
     md_art = art.convert_to_md()
-    print(md_art)
+    l = [(k, v) for k, v in vars(art).items() if k not in ["article_text_block"]]
+    for i in l:
+        print(i)
     return None
 #%%
 main()
