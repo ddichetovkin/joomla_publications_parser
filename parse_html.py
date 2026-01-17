@@ -1,4 +1,5 @@
 from pathlib import Path
+import yaml
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 from datetime import datetime
@@ -16,8 +17,9 @@ class Article:
         self.title = self.header.h1.text
         self.text_block = self._get_article_text_block()
         self.new_path_name = self._get_new_path_name()
-        self.tag_list = self._get_tag_list()
+        self.tags = self._get_tag_list()
         self.image_path = self.soup.find("div", class_="article-item-image").img["src"]
+        self.cover = {"image": self.image_path}
         self.description = f"{self.title} - Российская коммунистическа партия (большевиков)"
 
     def _get_tag_list(self):
@@ -53,6 +55,8 @@ def main() -> None:
     l = [(k, v) for k, v in vars(art).items() if k not in ["text_block"]]
     for i in l:
         print(i)
+    metadata = {k:v for k,v in vars(art).items() if k in ["author", "title", "date", "cover", "tags"]}
+    file_header = yaml.dump(matadata, allow_unicode=True, default_flow_style=False)
     target_path_name = Path(f"{target_dir}/{art.new_path_name}/index.md")
     target_path_name.parent.mkdir(parents=True, exist_ok=True)
     target_path_name.write_text(md_art)
