@@ -14,8 +14,11 @@ class Article:
         self.author = self.header.find("div", class_="article-item-credits_author divider").a.text.strip()
         self.title = self.header.h1.text
         self.description = self.title
-        self.article_text_block = self._get_article_text_block()
+        self.text_block = self._get_article_text_block()
+        self.new_path_name = self._get_new_path_name()
 
+    def _get_new_path_name(self):
+        return "-".join(Path(self.path).stem.split("-")[1:])
     def _get_soup(self):
         with open(self.path, "r") as file:
             html_str = file.read()
@@ -31,7 +34,7 @@ class Article:
 
     def convert_to_md(self):
         markdown = md(
-            str(self.article_text_block),
+            str(self.text_block),
             heading_style="ATX",      # # Заголовок, а не =========
             strip=["script", "style", "nav", "footer"],  # удалим ненужное
             # convert=['h1', 'h2', 'p', 'ul', 'ol', 'blockquote', 'a', 'strong', 'em', 'pre', 'code', 'img']
@@ -44,9 +47,10 @@ def main() -> None:
     path = publ_list[0]
     art = Article(path)
     md_art = art.convert_to_md()
-    l = [(k, v) for k, v in vars(art).items() if k not in ["article_text_block"]]
+    l = [(k, v) for k, v in vars(art).items() if k not in ["text_block"]]
     for i in l:
         print(i)
+    print("path:", art.path)
     return None
 #%%
 main()
