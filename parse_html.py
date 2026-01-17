@@ -16,9 +16,14 @@ class Article:
         self.description = self.title
         self.text_block = self._get_article_text_block()
         self.new_path_name = self._get_new_path_name()
+        self.tag_list = self._get_tag_list()
+
+    def _get_tag_list(self):
+        return self.soup.article.footer.find("div", class_="article-item-tags").text.strip("\n").split("\n")
 
     def _get_new_path_name(self):
         return "-".join(Path(self.path).stem.split("-")[1:])
+
     def _get_soup(self):
         with open(self.path, "r") as file:
             html_str = file.read()
@@ -51,6 +56,7 @@ def main() -> None:
     for i in l:
         print(i)
     print("path:", art.path)
+
     return None
 #%%
 main()
