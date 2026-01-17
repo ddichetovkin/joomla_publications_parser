@@ -4,7 +4,7 @@ from markdownify import markdownify as md
 from datetime import datetime
 
 source_dir = "publications"
-target_dir = "content"
+target_dir = "posts"
 
 class Article:
     def __init__(self ,path: str):
@@ -18,6 +18,7 @@ class Article:
         self.new_path_name = self._get_new_path_name()
         self.tag_list = self._get_tag_list()
         self.image_path = self.soup.find("div", class_="article-item-image").img["src"]
+        self.description = f"{self.title} - Российская коммунистическа партия (большевиков)"
 
     def _get_tag_list(self):
         return self.soup.article.footer.find("div", class_="article-item-tags").text.strip("\n").split("\n")
@@ -52,8 +53,10 @@ def main() -> None:
     l = [(k, v) for k, v in vars(art).items() if k not in ["text_block"]]
     for i in l:
         print(i)
-    print("path:", art.path)
-
+    target_path_name = Path(f"{target_dir}/{art.new_path_name}/index.md")
+    target_path_name.parent.mkdir(parents=True, exist_ok=True)
+    target_path_name.write_text(md_art)
+    print(type(md_art))
     return None
 #%%
 main()
