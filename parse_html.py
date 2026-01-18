@@ -1,5 +1,6 @@
 from pathlib import Path
 import yaml
+import shutil
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 from datetime import datetime
@@ -20,7 +21,7 @@ class Article:
         self.tags = self._get_tag_list()
         self.image_path = self.soup.find("div", class_="article-item-image").img["src"]
         self.image_ext = self.image_path.split(".")[-1]
-        self.cover = {"image": f"image/{self.new_path_name}.{self.image_ext}"}
+        self.cover = {"image": f"images/{self.new_path_name}.{self.image_ext}"}
         self.description = f"{self.title} - Российская коммунистическа партия (большевиков)"
 
     def _get_tag_list(self):
@@ -56,14 +57,17 @@ def main() -> None:
     l = [(k, v) for k, v in vars(art).items() if k not in ["text_block"]]
     for i in l:
         print(i)
-    metadata = {k:v for k,v in vars(art).items() for k in ["author", "title", "description", "date", "cover", "tags"]}
+    metadata = {k:getattr(art,k) for k in ["author", "title", "description", "date", "cover", "tags"]}
     print(metadata)
     file_header = yaml.dump(metadata, allow_unicode=True, default_flow_style=False)
     full_art_str = f"---\n{file_header}\n---\n{md_art}"
 
-    target_path_name = Path(f"{target_dir}/{art.new_path_name}/index.md")
-    target_path_name.parent.mkdir(parents=True, exist_ok=True)
-    target_path_name.write_text(full_art_str)
+    post_dir_str = f"{target_dir}/{art.new_path_name}"
+    Path(post_dir_str).parent.mkdir(parents=True, exist_ok=True)
+    if art.cover["image"]:
+        Path(f"{post_dir_str}/images").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(art.image_path.replace("../..", f"../{source_dir}"), f"{post_dir_str}/{art.cover['image']}")
+    Path(f"{post_dir_str}/index.md").write_text(full_art_str)
     return None
 #%%
 main()
