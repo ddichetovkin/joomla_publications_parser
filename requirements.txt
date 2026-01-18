@@ -5,3 +5,4 @@ typing_extensions==4.15.0
 lxml==6.0.2
 markdownify==1.2.2
 six==1.17.0
+PyYAML==6.0.3

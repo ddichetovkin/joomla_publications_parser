@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 from datetime import datetime
 
-source_dir = "publications"
+source_dir = "1957anti.ru"
 target_dir = "posts"
 
 class Article:
@@ -19,7 +19,8 @@ class Article:
         self.new_path_name = self._get_new_path_name()
         self.tags = self._get_tag_list()
         self.image_path = self.soup.find("div", class_="article-item-image").img["src"]
-        self.cover = {"image": self.image_path}
+        self.image_ext = self.image_path.split(".")[-1]
+        self.cover = {"image": f"image/{self.new_path_name}.{self.image_ext}"}
         self.description = f"{self.title} - Российская коммунистическа партия (большевиков)"
 
     def _get_tag_list(self):
@@ -48,19 +49,21 @@ class Article:
 #%%
 
 def main() -> None:
-    publ_list = [str(i) for i in Path(source_dir).glob("*.html") if i.stem.startswith("2444-")]
+    publ_list = [str(i) for i in Path(f"../{source_dir}/publications/item").glob("*.html") if i.stem.startswith("2444-")]
     path = publ_list[0]
     art = Article(path)
     md_art = art.convert_to_md()
     l = [(k, v) for k, v in vars(art).items() if k not in ["text_block"]]
     for i in l:
         print(i)
-    metadata = {k:v for k,v in vars(art).items() if k in ["author", "title", "date", "cover", "tags"]}
-    file_header = yaml.dump(matadata, allow_unicode=True, default_flow_style=False)
+    metadata = {k:v for k,v in vars(art).items() for k in ["author", "title", "description", "date", "cover", "tags"]}
+    print(metadata)
+    file_header = yaml.dump(metadata, allow_unicode=True, default_flow_style=False)
+    full_art_str = f"---\n{file_header}\n---\n{md_art}"
+
     target_path_name = Path(f"{target_dir}/{art.new_path_name}/index.md")
     target_path_name.parent.mkdir(parents=True, exist_ok=True)
-    target_path_name.write_text(md_art)
-    print(type(md_art))
+    target_path_name.write_text(full_art_str)
     return None
 #%%
 main()
