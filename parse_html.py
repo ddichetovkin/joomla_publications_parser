@@ -12,20 +12,30 @@ class Article:
     def __init__(self ,path: str):
         self.path = path
         self.soup = self._get_soup()
+        self.new_path_name = self._get_new_path_name()
         self.header = self.soup.article.header
         self.date = datetime.strftime(datetime.strptime(self.header.date.text.strip(), "%d.%m.%Y"), "%Y-%m-%d")
         self.author = self.header.find("div", class_="article-item-credits_author divider").a.text.strip()
         self.title = self.header.h1.text
         self.text_block = self._get_article_text_block()
-        self.new_path_name = self._get_new_path_name()
         self.tags = self._get_tag_list()
-        self.image_path = self.soup.find("div", class_="article-item-image").img["src"]
-        self.image_ext = self.image_path.split(".")[-1]
-        self.cover = {"image": f"images/{self.new_path_name}.{self.image_ext}"}
+        self.image_path, self.image_ext = self._get_image_data()
+        self.cover = {"image": f"images/{self.new_path_name}.{self.image_ext}"} if self.image_path else None
         self.description = f"{self.title} - Российская коммунистическа партия (большевиков)"
 
+    def _get_image_data(self):
+        image_dom = self.soup.find("div", class_="article-item-image")
+        if not image_dom:
+            return None, None
+        image_path = image_dom.img["src"]
+        image_ext = image_path.split(".")[-1]
+        return image_path, image_ext
+
     def _get_tag_list(self):
-        return self.soup.article.footer.find("div", class_="article-item-tags").text.strip("\n").split("\n")
+        tag_info = self.soup.article.footer.find("div", class_="article-item-tags")
+        if not tag_info:
+            return []
+        return tag_info.text.strip("\n").split("\n")
 
     def _get_new_path_name(self):
         return "-".join(Path(self.path).stem.split("-")[1:])
@@ -50,24 +60,28 @@ class Article:
 #%%
 
 def main() -> None:
-    publ_list = [str(i) for i in Path(f"../{source_dir}/publications/item").glob("*.html") if i.stem.startswith("2444-")]
-    path = publ_list[0]
-    art = Article(path)
-    md_art = art.convert_to_md()
-    l = [(k, v) for k, v in vars(art).items() if k not in ["text_block"]]
-    for i in l:
-        print(i)
-    metadata = {k:getattr(art,k) for k in ["author", "title", "description", "date", "cover", "tags"]}
-    print(metadata)
-    file_header = yaml.dump(metadata, allow_unicode=True, default_flow_style=False)
-    full_art_str = f"---\n{file_header}\n---\n{md_art}"
+    publ_list = [str(i) for i in Path(f"../{source_dir}/publications/item").glob("*.html")]
+    #path = publ_list[0]
+    for publ in publ_list:
+        print(publ)
+        art = Article(publ)
+        md_art = art.convert_to_md()
+        #l = [(k, v) for k, v in vars(art).items() if k not in ["text_block"]]
+        #for i in l:
+        #    print(i)
 
-    post_dir_str = f"{target_dir}/{art.new_path_name}"
-    Path(post_dir_str).parent.mkdir(parents=True, exist_ok=True)
-    if art.cover["image"]:
-        Path(f"{post_dir_str}/images").mkdir(parents=True, exist_ok=True)
-        shutil.copy2(art.image_path.replace("../..", f"../{source_dir}"), f"{post_dir_str}/{art.cover['image']}")
-    Path(f"{post_dir_str}/index.md").write_text(full_art_str)
+        metadata = {k:getattr(art,k) for k in ["author", "title", "description", "date", "cover", "tags"]}
+        file_header = yaml.dump(metadata, allow_unicode=True, default_flow_style=False)
+        full_art_str = f"---\n{file_header}\n---\n{md_art}"
+
+        post_dir_str = f"{target_dir}/{art.new_path_name}"
+        Path(post_dir_str).mkdir(parents=True, exist_ok=True)
+
+        if art.cover:
+            Path(f"{post_dir_str}/images").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(art.image_path.replace("../..", f"../{source_dir}"), f"{post_dir_str}/{art.cover['image']}")
+
+        Path(f"{post_dir_str}/index.md").write_text(full_art_str)
     return None
 #%%
 main()
