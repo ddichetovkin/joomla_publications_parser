@@ -15,13 +15,21 @@ class Article:
         self.new_path_name = self._get_new_path_name()
         self.header = self.soup.article.header
         self.date = datetime.strftime(datetime.strptime(self.header.date.text.strip(), "%d.%m.%Y"), "%Y-%m-%d")
-        self.author = self.header.find("div", class_="article-item-credits_author divider").a.text.strip()
+        self.author = self._get_author()
         self.title = self.header.h1.text
         self.text_block = self._get_article_text_block()
         self.tags = self._get_tag_list()
         self.image_path, self.image_ext = self._get_image_data()
-        self.cover = {"image": f"images/{self.new_path_name}.{self.image_ext}"} if self.image_path else None
-        self.description = f"{self.title} - Российская коммунистическа партия (большевиков)"
+        self.cover = {"image": f"images/title.{self.image_ext}"} if self.image_path else None
+        #self.description = f"{self.title} - Российская коммунистическа партия (большевиков)"
+        self.ShowToc = True
+        self.TocOpen = True
+
+    def _get_author(self) -> str:
+        author = self.header.find("div", class_="article-item-credits_author divider").a.text.strip()
+        if author == "Балаев Пётр":
+            author = "Петр Балаев"
+        return author
 
     def _get_image_data(self):
         image_dom = self.soup.find("div", class_="article-item-image")
@@ -57,21 +65,25 @@ class Article:
             # convert=['h1', 'h2', 'p', 'ul', 'ol', 'blockquote', 'a', 'strong', 'em', 'pre', 'code', 'img']
         )
         return markdown
-#%%
+
+    def prep_post_header(self) -> str:
+        attr_list = ["author", "title", "date", "cover", "tags", "ShowToc", "TocOpen"]
+        metadata = {attr:getattr(self, attr) for attr in attr_list}
+        file_header = yaml.dump(metadata, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        return file_header
+
+def represent_list_in_flow_style(dumper, data):
+    return dumper.represent_sequence('tag:yaml.org,2002:seq', data, flow_style=True)
 
 def main() -> None:
     publ_list = [str(i) for i in Path(f"../{source_dir}/publications/item").glob("*.html")]
-    #path = publ_list[0]
     for publ in publ_list:
         print(publ)
         art = Article(publ)
         md_art = art.convert_to_md()
-        #l = [(k, v) for k, v in vars(art).items() if k not in ["text_block"]]
-        #for i in l:
-        #    print(i)
 
-        metadata = {k:getattr(art,k) for k in ["author", "title", "description", "date", "cover", "tags"]}
-        file_header = yaml.dump(metadata, allow_unicode=True, default_flow_style=False)
+        yaml.add_representer(list, represent_list_in_flow_style)
+        file_header = art.prep_post_header()
         full_art_str = f"---\n{file_header}\n---\n{md_art}"
 
         post_dir_str = f"{target_dir}/{art.new_path_name}"
@@ -85,3 +97,10 @@ def main() -> None:
     return None
 #%%
 main()
+#%%
+publ = "../1957anti.ru/publications/item/1332-golova-professora-vangengejma-saga-o-solovetskom-rasstrele.html"
+art = Article(publ)
+
+yaml.add_representer(list, represent_list_in_flow_style)
+file_header = art.prep_post_header()
+print(file_header)
