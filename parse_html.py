@@ -68,11 +68,18 @@ class Article:
 
     def prep_post_header(self) -> str:
         attr_list = ["author", "title", "date", "cover", "tags", "ShowToc", "TocOpen"]
-        metadata = {attr:getattr(self, attr) for attr in attr_list}
+        metadata = {attr: getattr(self, attr) for attr in attr_list}
         file_header = yaml.dump(metadata, allow_unicode=True, default_flow_style=False, sort_keys=False)
         return file_header
 
-def represent_list_in_flow_style(dumper, data):
+class DoubleQuoted(str):
+    pass
+
+def represent_dq(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
+
+def represent_list_flow(dumper, data):
+    data = [DoubleQuoted(tag) for tag in data]
     return dumper.represent_sequence('tag:yaml.org,2002:seq', data, flow_style=True)
 
 def main() -> None:
@@ -82,7 +89,8 @@ def main() -> None:
         art = Article(publ)
         md_art = art.convert_to_md()
 
-        yaml.add_representer(list, represent_list_in_flow_style)
+        yaml.add_representer(DoubleQuoted, represent_dq)
+        yaml.add_representer(list, represent_list_flow)
         file_header = art.prep_post_header()
         full_art_str = f"---\n{file_header}\n---\n{md_art}"
 
@@ -98,9 +106,9 @@ def main() -> None:
 #%%
 main()
 #%%
-publ = "../1957anti.ru/publications/item/1332-golova-professora-vangengejma-saga-o-solovetskom-rasstrele.html"
-art = Article(publ)
-
-yaml.add_representer(list, represent_list_in_flow_style)
-file_header = art.prep_post_header()
-print(file_header)
+#publ = "../1957anti.ru/publications/item/1332-golova-professora-vangengejma-saga-o-solovetskom-rasstrele.html"
+#art = Article(publ)
+#yaml.add_representer(DoubleQuoted, represent_dq)
+#yaml.add_representer(list, represent_list_flow)
+#file_header = art.prep_post_header()
+#print(file_header)
