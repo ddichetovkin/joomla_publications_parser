@@ -1,5 +1,6 @@
 from pathlib import Path
 import yaml
+import re
 import shutil
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
@@ -57,6 +58,12 @@ class Article:
     def _get_article_text_block(self):
         return self.soup.article.find("div", class_="article-item-text")
 
+    @staticmethod
+    def prep_internal_links(md_text: str) -> str:
+        pattern = r"\(\d*-(.*?)\.html\)"
+        new_p = r"(../\1)"
+        return re.sub(pattern, new_p, md_text)
+
     def convert_to_md(self):
         markdown = md(
             str(self.text_block),
@@ -64,13 +71,14 @@ class Article:
             strip=["script", "style", "nav", "footer"],  # удалим ненужное
             # convert=['h1', 'h2', 'p', 'ul', 'ol', 'blockquote', 'a', 'strong', 'em', 'pre', 'code', 'img']
         )
-        return markdown
+        return self.prep_internal_links(markdown)
 
     def prep_post_header(self) -> str:
         attr_list = ["author", "title", "date", "cover", "tags", "ShowToc", "TocOpen"]
         metadata = {attr: getattr(self, attr) for attr in attr_list}
         file_header = yaml.dump(metadata, allow_unicode=True, default_flow_style=False, sort_keys=False)
         return file_header
+
 
 class DoubleQuoted(str):
     pass
@@ -92,7 +100,7 @@ def main() -> None:
         yaml.add_representer(DoubleQuoted, represent_dq)
         yaml.add_representer(list, represent_list_flow)
         file_header = art.prep_post_header()
-        full_art_str = f"---\n{file_header}\n---\n{md_art}"
+        full_art_str = f"---\n{file_header}---\n{md_art}"
 
         post_dir_str = f"{target_dir}/{art.new_path_name}"
         Path(post_dir_str).mkdir(parents=True, exist_ok=True)
@@ -106,9 +114,18 @@ def main() -> None:
 #%%
 main()
 #%%
-#publ = "../1957anti.ru/publications/item/1332-golova-professora-vangengejma-saga-o-solovetskom-rasstrele.html"
+#publ = "../1957anti.ru/publications/item/2344-100-let.html"
 #art = Article(publ)
-#yaml.add_representer(DoubleQuoted, represent_dq)
-#yaml.add_representer(list, represent_list_flow)
-#file_header = art.prep_post_header()
-#print(file_header)
+#md_art = art.convert_to_md()
+#
+#print(md_art)
+# TODO
+kitaj-sotsializm-ili-kapitalizm
+kommunizm-i-borba-za-nego
+kontrakt-veka-kinoklub-1957anti
+o-zabastovke-na-rudnike-ametistovoe
+pilite-shura-pilite-otvet-stepanovu-ot-adepta-balaeva
+poteri-i-plennye-rkka-ili-u-kogo-uchilis-sovetskie-generaly-voevat
+proletariat
+sledstvie-vedut-mraksisty-bolshoj-terror-s-zhukovym-i-mejsnerom
+
